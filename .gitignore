@@ -1,0 +1,27 @@
+# Ignore build outputs
+bin/
+obj/
+
+# User-specific files
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# VS Code settings
+.vscode/
+
+# Chrome user data
+WhatsAppBulkSender/ChromeProfile/
+
+# Screenshots and logs
+WhatsAppFail_*.png
+
+# OS generated files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Others
+*.log
+*.tmp
