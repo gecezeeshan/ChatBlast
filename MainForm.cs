@@ -14,6 +14,7 @@ namespace WhatsAppBulkSender
     {
         private List<string> _numbers = new();
         private CancellationTokenSource? _cts;
+        private string[]? _selectedFiles;
 
         public MainForm()
         {
@@ -77,15 +78,19 @@ namespace WhatsAppBulkSender
                 MessageBox.Show(this, "Please load numbers from Excel first.", "No numbers", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 return;
             }
-            if (string.IsNullOrWhiteSpace(txtMessage.Text))
+
+            if (string.IsNullOrWhiteSpace(txtMessage.Text) && (_selectedFiles == null || _selectedFiles.Length == 0))
             {
-                MessageBox.Show(this, "Please enter a message.", "No message", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                MessageBox.Show(this, "Please enter a message or select at least one attachment.", "Nothing to send", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 return;
             }
 
             btnSend.Enabled = false;
             btnLoad.Enabled = false;
+            btnAttach.Enabled = false;
+            btnClearAttachments.Enabled = false;
             btnCancel.Enabled = true;
+
             _cts = new CancellationTokenSource();
             progressBar.Value = 0;
             progressBar.Maximum = _numbers.Count;
@@ -106,7 +111,7 @@ namespace WhatsAppBulkSender
                     i++;
                     try
                     {
-                        bool sent = await senderSvc.SendMessageAsync(phone, message, _cts.Token);
+                        bool sent = await senderSvc.SendMessageAsync(phone, message, _selectedFiles, _cts.Token);
                         if (sent)
                         {
                             success++;
@@ -147,6 +152,8 @@ namespace WhatsAppBulkSender
             {
                 btnSend.Enabled = true;
                 btnLoad.Enabled = true;
+                btnAttach.Enabled = true;
+                btnClearAttachments.Enabled = true;
                 btnCancel.Enabled = false;
                 _cts?.Dispose();
                 _cts = null;
@@ -158,6 +165,35 @@ namespace WhatsAppBulkSender
             _cts?.Cancel();
         }
 
+        private void btnAttach_Click(object sender, EventArgs e)
+        {
+            using var ofd = new OpenFileDialog
+            {
+                Title = "Select files to attach",
+                Filter = "All Files|*.*",
+                Multiselect = true
+            };
+
+            if (ofd.ShowDialog(this) == DialogResult.OK)
+            {
+                _selectedFiles = ofd.FileNames;
+                lblAttachments.Text = $"{_selectedFiles.Length} file(s) selected";
+                Log($"Attached {_selectedFiles.Length} file(s).");
+            }
+            else
+            {
+                _selectedFiles = null;
+                lblAttachments.Text = "No files selected";
+            }
+        }
+
+        private void btnClearAttachments_Click(object sender, EventArgs e)
+        {
+            _selectedFiles = null;
+            lblAttachments.Text = "No files selected";
+            Log("Attachments cleared.");
+        }
+
         private void Log(string msg)
         {
             lstStatus.Items.Add($"[{DateTime.Now:HH:mm:ss}] {msg}");
@@ -165,4 +201,3 @@ namespace WhatsAppBulkSender
         }
     }
 }
-

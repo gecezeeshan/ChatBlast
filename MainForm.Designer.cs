@@ -1,4 +1,3 @@
-
 namespace WhatsAppBulkSender
 {
     partial class MainForm
@@ -40,6 +39,9 @@ namespace WhatsAppBulkSender
             this.lblLoaded = new System.Windows.Forms.Label();
             this.btnCancel = new System.Windows.Forms.Button();
             this.chkHeadless = new System.Windows.Forms.CheckBox();
+            this.btnAttach = new System.Windows.Forms.Button();
+            this.btnClearAttachments = new System.Windows.Forms.Button();
+            this.lblAttachments = new System.Windows.Forms.Label();
             ((System.ComponentModel.ISupportInitialize)(this.numDelayMs)).BeginInit();
             this.SuspendLayout();
             // 
@@ -77,7 +79,7 @@ namespace WhatsAppBulkSender
             // btnSend
             // 
             this.btnSend.Enabled = false;
-            this.btnSend.Location = new System.Drawing.Point(12, 219);
+            this.btnSend.Location = new System.Drawing.Point(12, 250);
             this.btnSend.Name = "btnSend";
             this.btnSend.Size = new System.Drawing.Size(94, 34);
             this.btnSend.TabIndex = 3;
@@ -109,7 +111,7 @@ namespace WhatsAppBulkSender
             0,
             0,
             0});
-            this.numDelayMs.Location = new System.Drawing.Point(170, 255);
+            this.numDelayMs.Location = new System.Drawing.Point(170, 287);
             this.numDelayMs.Maximum = new decimal(new int[] {
             60000,
             0,
@@ -132,7 +134,7 @@ namespace WhatsAppBulkSender
             // label2
             // 
             this.label2.AutoSize = true;
-            this.label2.Location = new System.Drawing.Point(12, 257);
+            this.label2.Location = new System.Drawing.Point(12, 289);
             this.label2.Name = "label2";
             this.label2.Size = new System.Drawing.Size(152, 20);
             this.label2.TabIndex = 7;
@@ -150,7 +152,7 @@ namespace WhatsAppBulkSender
             // btnCancel
             // 
             this.btnCancel.Enabled = false;
-            this.btnCancel.Location = new System.Drawing.Point(112, 219);
+            this.btnCancel.Location = new System.Drawing.Point(112, 250);
             this.btnCancel.Name = "btnCancel";
             this.btnCancel.Size = new System.Drawing.Size(94, 34);
             this.btnCancel.TabIndex = 9;
@@ -161,18 +163,50 @@ namespace WhatsAppBulkSender
             // chkHeadless
             // 
             this.chkHeadless.AutoSize = true;
-            this.chkHeadless.Location = new System.Drawing.Point(457, 222);
+            this.chkHeadless.Location = new System.Drawing.Point(457, 255);
             this.chkHeadless.Name = "chkHeadless";
             this.chkHeadless.Size = new System.Drawing.Size(173, 24);
             this.chkHeadless.TabIndex = 10;
             this.chkHeadless.Text = "Run Chrome headless";
             this.chkHeadless.UseVisualStyleBackColor = true;
             // 
+            // btnAttach
+            // 
+            this.btnAttach.Location = new System.Drawing.Point(12, 212);
+            this.btnAttach.Name = "btnAttach";
+            this.btnAttach.Size = new System.Drawing.Size(120, 30);
+            this.btnAttach.TabIndex = 11;
+            this.btnAttach.Text = "Attach Files";
+            this.btnAttach.UseVisualStyleBackColor = true;
+            this.btnAttach.Click += new System.EventHandler(this.btnAttach_Click);
+            // 
+            // btnClearAttachments
+            // 
+            this.btnClearAttachments.Location = new System.Drawing.Point(138, 212);
+            this.btnClearAttachments.Name = "btnClearAttachments";
+            this.btnClearAttachments.Size = new System.Drawing.Size(150, 30);
+            this.btnClearAttachments.TabIndex = 12;
+            this.btnClearAttachments.Text = "Clear Attachments";
+            this.btnClearAttachments.UseVisualStyleBackColor = true;
+            this.btnClearAttachments.Click += new System.EventHandler(this.btnClearAttachments_Click);
+            // 
+            // lblAttachments
+            // 
+            this.lblAttachments.AutoSize = true;
+            this.lblAttachments.Location = new System.Drawing.Point(294, 218);
+            this.lblAttachments.Name = "lblAttachments";
+            this.lblAttachments.Size = new System.Drawing.Size(126, 20);
+            this.lblAttachments.TabIndex = 13;
+            this.lblAttachments.Text = "No files selected";
+            // 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 20F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(642, 594);
+            this.Controls.Add(this.lblAttachments);
+            this.Controls.Add(this.btnClearAttachments);
+            this.Controls.Add(this.btnAttach);
             this.Controls.Add(this.chkHeadless);
             this.Controls.Add(this.btnCancel);
             this.Controls.Add(this.lblLoaded);
@@ -207,5 +241,10 @@ namespace WhatsAppBulkSender
         private System.Windows.Forms.Label lblLoaded;
         private System.Windows.Forms.Button btnCancel;
         private System.Windows.Forms.CheckBox chkHeadless;
+
+        // NEW controls
+        private System.Windows.Forms.Button btnAttach;
+        private System.Windows.Forms.Button btnClearAttachments;
+        private System.Windows.Forms.Label lblAttachments;
     }
 }
