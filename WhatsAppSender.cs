@@ -9,6 +9,8 @@ namespace WhatsAppBulkSender
     {
         private readonly ChromeDriver _driver;
         private readonly WebDriverWait _wait;
+        private bool _firstLogin = true;
+
 
         public WhatsAppSender(bool headless)
         {
@@ -70,7 +72,9 @@ namespace WhatsAppBulkSender
                         throw new TimeoutException("Login timeout. Please scan the QR code to continue.");
                 }
             }
+            _firstLogin = false;
         }
+
 
         public async Task<bool> SendMessageAsync(string phone, string? message, string[]? filePaths, CancellationToken ct)
         {
@@ -86,9 +90,10 @@ namespace WhatsAppBulkSender
             _driver.Navigate().GoToUrl(targetUrl);
 
             // 3️⃣ Wait for chat to load
-            bool ready = await WaitUntilAsync(
-                () => ElementExists(By.CssSelector("footer div[contenteditable='true']")) || HasInvalidNumberBanner(),
-                TimeSpan.FromSeconds(10), ct);
+       double waitSeconds = _firstLogin ? 45 : 15;
+bool ready = await WaitUntilAsync(
+    () => ElementExists(By.CssSelector("footer div[contenteditable='true']")) || HasInvalidNumberBanner(),
+    TimeSpan.FromSeconds(waitSeconds), ct);
 
             if (!ready || HasInvalidNumberBanner())
             {
@@ -184,7 +189,7 @@ namespace WhatsAppBulkSender
 
                     bool sent = await WaitUntilAsync(
                         () => CountOutgoingMessages() > outgoingBefore || ComposerLooksCleared(),
-                        TimeSpan.FromSeconds(3), ct);
+                        TimeSpan.FromSeconds(8), ct);
 
                     Console.WriteLine("[Text] Sent = " + sent);
                     return sent;
@@ -267,7 +272,7 @@ namespace WhatsAppBulkSender
                 ElementExists(By.CssSelector("div[data-testid='media-preview-container']")) ||
                 ElementExists(By.CssSelector("div[data-testid='media-editor']")) ||
                 ElementExists(By.CssSelector("div[role='dialog'][data-animate-modal-body='true']")),
-                TimeSpan.FromSeconds(3), ct);
+                TimeSpan.FromSeconds(8), ct);
         }
 
         // 🔹 Click the “Send” button — works even if it’s inside Shadow DOM

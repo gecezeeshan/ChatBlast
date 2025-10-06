@@ -1,77 +1,87 @@
-# WhatsApp Bulk Sender (Demo)
+WhatsApp Bulk Sender
+====================
+Author: Zeeshan Ali  
+Version: 1.0.0  
+Date: October 2025  
 
-> **Disclaimer**: This tool automates WhatsApp Web through Selenium for educational and personal-use purposes.
-> It is **not** an official WhatsApp API. Automating messages may violate WhatsApp's Terms of Service and
-> could lead to throttling or account bans. Use responsibly: only message contacts who have consented.
-> I am not responsible for any account restrictions or damages.
+Overview
+--------
+WhatsApp Bulk Sender is a lightweight Windows desktop tool for sending WhatsApp messages to multiple contacts directly via WhatsApp Web.  
+It supports sending **text messages**, **images**, **videos**, and **documents** using Chrome automation (Selenium).
 
-## What it does
-- Windows Forms app that opens WhatsApp Web and sends a single message to many phone numbers
-- One-time QR scan to login (your Chrome user profile is persisted so you don't scan again)
-- Load phone numbers from the first column of an Excel file (`.xlsx`/`.xls`)
-- Configurable delay between sends
-- Minimal UI with progress bar and status log
-- Robust per-number try/catch and cancellation
-
-## Requirements
-- Windows 10/11
-- Visual Studio 2022 or newer
-- .NET 6 Desktop Runtime / SDK
-- Google Chrome installed
-- Internet connection (for WhatsApp Web)
-- NuGet packages will restore automatically:
-  - Selenium.WebDriver
-  - Selenium.Support
-  - Selenium.WebDriver.ChromeDriver
-  - ExcelDataReader
-  - ExcelDataReader.DataSet
-
-## Build & Run
-1. Open `WhatsAppBulkSender.sln` in Visual Studio.
-2. Build -> Rebuild Solution (restores NuGet packages automatically).
-3. Run (F5) to start the app.
-
-## Usage
-1. Click **Load Excel…** and choose a file with phone numbers in the first column.
-   - Numbers should include country code (e.g., `+9715xxxxxxx` or `9715xxxxxxx`).
-   - Duplicates are removed automatically.
-2. Type or paste your message in the **Message to broadcast** box.
-3. (Optional) Adjust **Delay between sends** (default 1200 ms).
-4. (Optional) Tick **Run Chrome headless** to run without a visible window (first login requires visible window to scan QR).
-5. Click **Send**.
-6. On first run, Chrome opens `web.whatsapp.com`. Scan the QR code with your phone.
-7. Watch the status log and progress bar update as messages are sent.
-
-## Excel Format
-- First sheet, first column is read as phone numbers.
-- Any extra columns are ignored.
-
-## Persistence
-- The app uses a Chrome user-data directory at:
-  `%LOCALAPPDATA%\WhatsAppBulkSender\ChromeProfile`
-- This keeps your WhatsApp Web login session so you only scan QR once per machine/profile.
-
-## Tips and Rate Limits
-- Add a reasonable delay (e.g., 1200–3000 ms) to reduce the chance of rate limiting.
-- Avoid very large batches. Consider splitting into smaller groups.
-- Prefer messaging known contacts with consent to avoid being reported.
-
-## Troubleshooting
-- **Login timeout**: Make sure the QR is scanned within ~3 minutes.
-- **No Chrome**: Install Chrome and try again.
-- **Invalid numbers**: Some numbers are not on WhatsApp; these show as warnings.
-- **Element changes**: WhatsApp Web changes DOM occasionally. If sending breaks,
-  update selectors in `WhatsAppSender.cs`.
-
-## Packaging
-You can publish a single-file EXE:
-```
-dotnet publish -c Release -r win-x64 -p:PublishSingleFile=true --self-contained=false
-```
-This produces an exe under `bin\Release\net6.0-windows\win-x64\publish`.
+No API setup or Meta Business Account is required — you just log in once via QR code.
 
 ---
 
-## Security & Ethics
-- Use only with contacts who have opted in.
-- Comply with local laws and WhatsApp policies."# ChatBlast" 
+System Requirements
+-------------------
+• Windows 10 or later  
+• Google Chrome (latest version installed)  
+• .NET 6 Desktop Runtime (download from: https://dotnet.microsoft.com/en-us/download/dotnet/6.0)  
+• Stable internet connection  
+
+---
+
+Setup Instructions
+------------------
+1. **Extract** the provided ZIP file (WhatsAppBulkSender_App.zip) anywhere on your PC.  
+2. Open the folder and **double-click `WhatsAppBulkSender.exe`**.  
+3. Wait for Chrome to launch WhatsApp Web.  
+4. Scan the **QR code** with your phone (only required once).  
+5. After login, you’re ready to send messages.
+
+---
+
+Usage
+-----
+1. Click **“Load Excel”** and select an Excel file (first sheet, first column = phone numbers).  
+   • Numbers can include country code or start with “+” (e.g. +971501234567).  
+2. Type your **message** in the text box.  
+3. (Optional) Click **“Attach Files”** to add images, videos, or documents.  
+4. Set a delay (recommended: 2000–5000 ms for safe sending).  
+5. Click **“Send”**.  
+6. Monitor the **progress log** below for send results.
+
+---
+
+Features
+--------
+• ✅ Load phone numbers from Excel  
+• ✅ Send text messages  
+• ✅ Send images, videos, and files  
+• ✅ Supports multiple attachments  
+• ✅ Configurable send delay  
+• ✅ QR login persists automatically for future sessions  
+• ✅ Real-time progress updates and detailed logs  
+• ✅ Automatic screenshots when errors occur  
+
+---
+
+Troubleshooting
+---------------
+If Chrome fails to start:
+  → Ensure Google Chrome is installed and updated.  
+  → Delete the user profile folder:
+     `C:\Users\<YourName>\AppData\Local\WhatsAppBulkSender\ChromeProfile`
+
+If messages don’t send:
+  → Check that all numbers are valid and active on WhatsApp.  
+  → Ensure QR login is complete.  
+  → Increase the delay between messages.  
+  → Reopen the app if Chrome stays open in background.
+
+---
+
+Support
+-------
+Developed by: **Zeeshan Ali**  
+Email: [gecezeeshan@gmail.com]  
+For code or modification requests, please refer to the included **SourceCode.zip** package.
+
+---
+
+Disclaimer
+----------
+This tool uses WhatsApp Web automation and is **not an official WhatsApp product**.  
+Use responsibly and only send messages to contacts who have consented to receive them.  
+Frequent bulk usage may trigger WhatsApp’s temporary restrictions.

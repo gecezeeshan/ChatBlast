@@ -2,7 +2,7 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 
 //[assembly: AssemblyTitle("WhatsAppBulkSender")]
-//[assembly: AssemblyDescription("Lightweight WhatsApp Web bulk message sender (demo)")]
+//[assembly: AssemblyDescription("Lightweight WhatsApp Web bulk message sender")]
 //[assembly: AssemblyCompany("YourName")]
 //[assembly: AssemblyProduct("WhatsAppBulkSender")]
 //[assembly: AssemblyCopyright("Copyright © 2025")]

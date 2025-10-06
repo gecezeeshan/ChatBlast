@@ -120,7 +120,7 @@ namespace WhatsAppBulkSender
                         else
                         {
                             fail++;
-                            Log($"[{i}/{_numbers.Count}] [X] Not delivered (maybe not on WhatsApp): {phone}");
+                            Log($"[{i}/{_numbers.Count}] [X] Not delivered: {phone}");
                         }
                     }
                     catch (OperationCanceledException)

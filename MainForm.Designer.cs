@@ -222,7 +222,7 @@ namespace WhatsAppBulkSender
             this.MaximizeBox = false;
             this.Name = "MainForm";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
-            this.Text = "WhatsApp Bulk Sender (Demo)";
+            this.Text = "WhatsApp Bulk Sender";
             ((System.ComponentModel.ISupportInitialize)(this.numDelayMs)).EndInit();
             this.ResumeLayout(false);
             this.PerformLayout();
