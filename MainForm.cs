@@ -1,11 +1,4 @@
-using System;
-using System.Collections.Generic;
 using System.Data;
-using System.IO;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
-using System.Windows.Forms;
 using ExcelDataReader;
 
 namespace WhatsAppBulkSender
@@ -19,6 +12,12 @@ namespace WhatsAppBulkSender
         public MainForm()
         {
             InitializeComponent();
+
+            this.chkHeadless.Visible = false;
+            this.chkHeadless.Checked = true;
+
+             this.numDelayMs.Visible = false;
+            this.label2.Visible = false;   
         }
 
         private void btnLoad_Click(object sender, EventArgs e)
