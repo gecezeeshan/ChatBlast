@@ -45,66 +45,7 @@ namespace WhatsAppBulkSender
             _wait = new WebDriverWait(_driver, TimeSpan.FromSeconds(30));
         }
 
-        private IWebElement? FindAttachButton()
-        {
-            var selectors = new[]
-            {
-        "button[data-testid='attach-menu-plus']",
-        "div[data-testid='attach-menu-plus']",
-        "button[aria-label='Attach']",
-        "div[aria-label='Attach']",
-        "button[aria-label='Menu'] svg path[d*='M18']", // newer "+" icon SVG pattern
-        "span[data-icon='clip']",
-        "button[title='Attach']",
-        "div[title='Attach']",
-        "div[role='button'][aria-label*='Attach']",
-        "div[aria-label='Add attachment']",
-        "button[aria-label='Add attachment']",
-        "div[data-testid='attach']"
-    };
 
-            foreach (var sel in selectors)
-            {
-                try
-                {
-                    var el = _driver.FindElements(By.CssSelector(sel)).FirstOrDefault();
-                    if (el != null && el.Displayed && el.Enabled)
-                    {
-                        Console.WriteLine($"[Attach] Found via selector: {sel}");
-                        return el;
-                    }
-                    else
-                    {
-                        Console.WriteLine($"[Attach] Tried selector: {sel} -> Not found/displayed");
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"[Attach] Selector {sel} failed: {ex.Message}");
-                }
-            }
-
-            // JS-based fallback: detect "+" icon dynamically
-            try
-            {
-                var jsAttach = (IWebElement)((IJavaScriptExecutor)_driver).ExecuteScript(@"
-            return [...document.querySelectorAll('button,div')].find(e =>
-                e.textContent.trim() === '+' ||
-                e.getAttribute('aria-label')?.toLowerCase().includes('attach') ||
-                e.getAttribute('title')?.toLowerCase().includes('attach')
-            );
-        ");
-                if (jsAttach != null)
-                {
-                    Console.WriteLine("[Attach] JS fallback found element.");
-                    return jsAttach;
-                }
-            }
-            catch { }
-
-            Console.WriteLine("[Attach] Attach button not found after all selectors.");
-            return null;
-        }
         public async Task EnsureLoggedInAsync(CancellationToken ct)
         {
             _driver.Navigate().GoToUrl("https://web.whatsapp.com/");
@@ -131,217 +72,266 @@ namespace WhatsAppBulkSender
             }
         }
 
-
-
-
-        private void JsLog(string msg)
+        public async Task<bool> SendMessageAsync(string phone, string? message, string[]? filePaths, CancellationToken ct)
         {
-            try
-            {
-                ((IJavaScriptExecutor)_driver).ExecuteScript($@"
-            if (!window.__wa_debug) {{
-                const box = document.createElement('div');
-                box.id = '__wa_debug';
-                box.style.cssText = `
-                    position:fixed;bottom:10px;left:10px;
-                    background:rgba(0,0,0,0.7);color:#0f0;
-                    font:12px monospace;padding:8px;z-index:999999;
-                    max-height:200px;overflow:auto;width:300px;border-radius:4px;
-                `;
-                document.body.appendChild(box);
-                window.__wa_debug = box;
-            }}
-            const el = window.__wa_debug;
-            const line = document.createElement('div');
-            line.textContent = '[C#] ' + new Date().toLocaleTimeString() + ' - ' + {System.Text.Json.JsonSerializer.Serialize(msg)};
-            el.appendChild(line);
-            el.scrollTop = el.scrollHeight;
-        ");
-            }
-            catch { /* no-op */ }
-        }
+            // 1️⃣ Basic input validation
+            if (string.IsNullOrWhiteSpace(phone)) return false;
+            string digitsOnly = new string(phone.Where(char.IsDigit).ToArray());
+            if (string.IsNullOrEmpty(digitsOnly)) return false;
 
-public async Task<bool> SendMessageAsync(string phone, string? message, string[]? filePaths, CancellationToken ct)
-{
-    if (string.IsNullOrWhiteSpace(phone)) return false;
+            Console.WriteLine($"[Init] Opening chat for {digitsOnly}");
 
-    string digitsOnly = new string(phone.Where(char.IsDigit).ToArray());
-    if (string.IsNullOrEmpty(digitsOnly)) return false;
+            // 2️⃣ Open WhatsApp chat
+            string targetUrl = $"https://web.whatsapp.com/send?phone={digitsOnly}&type=phone_number&app_absent=0";
+            _driver.Navigate().GoToUrl(targetUrl);
 
-    JsLog("Opening chat for " + digitsOnly);
-    string targetUrl = "https://web.whatsapp.com/send?phone=" + digitsOnly + "&type=phone_number&app_absent=0";
-    _driver.Navigate().GoToUrl(targetUrl);
-
-    JsLog("Waiting for composer...");
-    bool ready = await WaitUntilAsync(
-        () => ElementExists(By.CssSelector("footer div[contenteditable='true']")) || HasInvalidNumberBanner(),
-        TimeSpan.FromSeconds(45), ct);
-
-    JsLog("Composer ready = " + ready);
-    if (!ready || HasInvalidNumberBanner())
-    {
-        JsLog("Invalid number or composer not found.");
-        return false;
-    }
-
-    try
-    {
-        // ===== CASE 1: Attachments =====
-        if (filePaths != null && filePaths.Length > 0)
-        {
-            Console.WriteLine($"[Attach] Trying to send {filePaths.Length} file(s) to {digitsOnly}.");
-
-            var attachBtn = FindAttachButton();
-            if (attachBtn == null)
-            {
-                Console.WriteLine("[Attach] No attach button found — saving screenshot...");
-                TrySaveScreenshot(digitsOnly + "_noAttach");
-                return false;
-            }
-
-            try
-            {
-                ((IJavaScriptExecutor)_driver).ExecuteScript("arguments[0].scrollIntoView(true);", attachBtn);
-                attachBtn.Click();
-            }
-            catch
-            {
-                Console.WriteLine("[Attach] Normal click failed, trying JS click...");
-                try { ((IJavaScriptExecutor)_driver).ExecuteScript("arguments[0].click();", attachBtn); } catch { }
-            }
-
-            await Task.Delay(800, ct);
-
-            var fileInput = FindUsableFileInput();
-            if (fileInput == null)
-            {
-                Console.WriteLine("[Attach] No file input found — saving screenshot...");
-                TrySaveScreenshot(digitsOnly + "_noFileInput");
-                return false;
-            }
-
-            fileInput.SendKeys(string.Join("\n", filePaths));
-            Console.WriteLine($"[Attach] Uploaded {filePaths.Length} file(s).");
-
-            // Wait for editor or preview
-            bool editorReady = await WaitUntilAsync(
-                () => ElementExists(By.CssSelector("div[role='dialog'], div[data-testid='media-editor']")),
+            // 3️⃣ Wait for chat to load
+            bool ready = await WaitUntilAsync(
+                () => ElementExists(By.CssSelector("footer div[contenteditable='true']")) || HasInvalidNumberBanner(),
                 TimeSpan.FromSeconds(10), ct);
 
-            if (!editorReady)
+            if (!ready || HasInvalidNumberBanner())
             {
-                Console.WriteLine("[Attach] ⚠️ Media editor not detected — saving screenshot.");
-                TrySaveScreenshot(digitsOnly + "_noMediaEditor");
+                Console.WriteLine("[Init] Invalid number or chat not ready.");
+                return false;
             }
 
-            // Optional caption
-            if (!string.IsNullOrWhiteSpace(message))
+            try
             {
-                var captionBox = FindCaptionBox();
-                if (captionBox != null)
+                // 4️⃣ If there are attachments
+                if (filePaths != null && filePaths.Length > 0)
                 {
-                    captionBox.Click();
-                    captionBox.SendKeys(message);
-                    Console.WriteLine("[Attach] Caption added.");
+                    foreach (var file in filePaths)
+                    {
+                        string ext = Path.GetExtension(file).ToLowerInvariant();
+
+                        // Decide the WhatsApp menu type by extension
+                        string attachType = ext switch
+                        {
+                            ".jpg" or ".jpeg" or ".png" or ".gif" or ".mp4" or ".mov" => "image",
+                            ".pdf" or ".docx" or ".xlsx" or ".txt" or ".csv" or ".zip" => "document",
+                            ".mp3" or ".aac" or ".wav" or ".ogg" or ".m4a" => "audio",
+                            ".vcf" => "contact",
+                            ".webp" => "sticker",
+                            _ => "document"
+                        };
+
+                        Console.WriteLine($"[Attach] Sending {file} as {attachType}");
+
+                        // 🔹 4.1 Click paperclip → select the proper submenu
+                        var input = await ClickAttachMenuAsync(attachType, ct);
+                        if (input == null)
+                        {
+                            Console.WriteLine($"[Attach] ❌ Could not open submenu for {attachType}");
+                            TrySaveScreenshot($"{digitsOnly}_noAttachInput_{attachType}");
+                            continue;
+                        }
+
+                        // 🔹 4.2 Upload file(s)
+                        ((IJavaScriptExecutor)_driver).ExecuteScript("arguments[0].scrollIntoView(true);", input);
+                        input.SendKeys(file);
+                        Console.WriteLine($"[Attach] File uploaded: {file}");
+
+                        // 🔹 4.3 Wait for preview or editor to load
+                        await WaitForMediaEditorAsync(ct);
+
+                        // Optional caption if user provided message
+                        if (!string.IsNullOrWhiteSpace(message))
+                        {
+                            var captionBox = FindCaptionBox();
+                            if (captionBox != null)
+                            {
+                                captionBox.Click();
+                                captionBox.SendKeys(message);
+                                Console.WriteLine("[Attach] Caption added.");
+                            }
+                        }
+
+                        // 🔹 4.4 Click Send button
+                        if (await ClickSendButtonAsync(ct))
+                        {
+                            Console.WriteLine($"[Attach] ✅ Sent {Path.GetFileName(file)} successfully.");
+                            await Task.Delay(1500, ct); // wait between messages
+                        }
+                        else
+                        {
+                            Console.WriteLine($"[Attach] ❌ Failed to send {file}");
+                            TrySaveScreenshot($"{digitsOnly}_sendFail_{attachType}");
+                        }
+                    }
+
+                    return true;
                 }
+
+                // 5️⃣ Text-only message flow
+                if (!string.IsNullOrWhiteSpace(message))
+                {
+                    Console.WriteLine("[Text] Sending text message...");
+
+                    var composer = TryFindComposer();
+                    if (composer == null)
+                    {
+                        Console.WriteLine("[Text] ❌ No composer found!");
+                        return false;
+                    }
+
+                    int outgoingBefore = CountOutgoingMessages();
+                    composer.Click();
+
+                    // Type and send
+                    composer.SendKeys(message);
+                    composer.SendKeys(SeleniumKeys.Enter);
+
+                    bool sent = await WaitUntilAsync(
+                        () => CountOutgoingMessages() > outgoingBefore || ComposerLooksCleared(),
+                        TimeSpan.FromSeconds(3), ct);
+
+                    Console.WriteLine("[Text] Sent = " + sent);
+                    return sent;
+                }
+
+                Console.WriteLine("[Info] Nothing to send.");
+                return false;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("[Error] " + ex.Message);
+                TrySaveScreenshot($"{digitsOnly}_exception");
+                return false;
+            }
+        }
+
+
+        /// <summary>
+        /// Opens the WhatsApp attach menu (paperclip) and selects the right upload input.
+        /// Works for image, document, audio, contact, or sticker.
+        /// </summary>
+        private async Task<IWebElement?> ClickAttachMenuAsync(string type, CancellationToken ct)
+        {
+            Console.WriteLine($"[AttachMenu] Opening attach menu for type: {type}");
+
+            // Step 1️⃣: Click the main paperclip button
+            var attachBtn = _driver.FindElements(By.CssSelector("button[title='Attach'], div[aria-label='Attach']")).FirstOrDefault();
+            if (attachBtn == null)
+            {
+                Console.WriteLine("[AttachMenu] ❌ Paperclip button not found!");
+                TrySaveScreenshot("noAttachBtn");
+                return null;
             }
 
-            // === NEW FIX: Synthetic click for modern Send button ===
-            string jsClickSend =
-                "return (function(){ " +
-                "  const sels=['div[role=\"button\"][aria-label=\"Send\"]','button[aria-label=\"Send\"]','[data-testid=\"media-send\"]','span[data-icon=\"wds-ic-send-filled\"]'];" +
-                "  function find(root){ " +
-                "    for (let sel of sels){ let el=root.querySelector(sel); if(el) return el; }" +
-                "    for (let n of root.querySelectorAll('*')){ if(n.shadowRoot){ let f=find(n.shadowRoot); if(f) return f; } }" +
-                "    return null;" +
-                "  }" +
-                "  const el=find(document);" +
-                "  if(el){ " +
-                "    const rect=el.getBoundingClientRect();" +
-                "    const evt=new MouseEvent('click',{bubbles:true,cancelable:true,view:window,clientX:rect.left+5,clientY:rect.top+5});" +
-                "    el.dispatchEvent(evt);" +
-                "    console.log('✅ Synthetic click fired on Send');" +
-                "    return true;" +
-                "  }" +
-                "  return false;" +
-                "})();";
+            ((IJavaScriptExecutor)_driver).ExecuteScript("arguments[0].click();", attachBtn);
+            await Task.Delay(600, ct);
 
-            object ok = ((IJavaScriptExecutor)_driver).ExecuteScript(jsClickSend);
-            if (ok is bool clicked && clicked)
+            // Step 2️⃣: Find the correct input[type=file] based on type
+            string[] iconHints = type.ToLower() switch
             {
-                Console.WriteLine("[Attach] ✅ Synthetic click dispatched successfully.");
-                await Task.Delay(3000, ct);
+                "document" => new[] { "document-filled-refreshed", "Document" },
+                "image" or "video" => new[] { "media-filled-refreshed", "Photos", "videos" },
+                "audio" => new[] { "ic-headphones-filled", "Audio" },
+                "contact" => new[] { "person-filled-refreshed", "Contact" },
+                "sticker" => new[] { "sticker-create-filled-refreshed", "Sticker" },
+                _ => Array.Empty<string>()
+            };
 
-                // Confirm send by checking for new outgoing media
-                bool sent = await WaitUntilAsync(
-                    () => CountOutgoingMessages() > 0,
-                    TimeSpan.FromSeconds(5), ct);
+            // Step 3️⃣: Look for any visible <input type="file"> that matches these hints
+            var allInputs = _driver.FindElements(By.CssSelector("li input[type='file']")).ToList();
+            Console.WriteLine($"[AttachMenu] Found {allInputs.Count} file inputs in dropdown.");
 
-                Console.WriteLine(sent ? "[Attach] ✅ Media sent confirmed." : "[Attach] ❌ Media send unconfirmed.");
-                return sent;
+            foreach (var input in allInputs)
+            {
+                try
+                {
+                    var liParent = input.FindElement(By.XPath("ancestor::li"));
+                    string html = liParent.GetAttribute("innerHTML") ?? "";
+
+                    if (iconHints.Any(h => html.Contains(h, StringComparison.OrdinalIgnoreCase)))
+                    {
+                        Console.WriteLine($"[AttachMenu] ✅ Matched '{type}' via hint: {iconHints.First(h => html.Contains(h, StringComparison.OrdinalIgnoreCase))}");
+                        ((IJavaScriptExecutor)_driver).ExecuteScript("arguments[0].scrollIntoView(true);", input);
+                        return input; // return input element directly so caller can sendKeys()
+                    }
+                }
+                catch { /* ignore dead nodes */ }
+            }
+
+            Console.WriteLine($"[AttachMenu] ❌ No matching input found for type '{type}'");
+            TrySaveScreenshot($"attachMenuFail_{type}_{DateTime.Now:HHmmss}");
+            return null;
+        }
+
+
+        // 🔹 Wait until the media editor (preview window) appears
+        private async Task WaitForMediaEditorAsync(CancellationToken ct)
+        {
+            await WaitUntilAsync(() =>
+                ElementExists(By.CssSelector("div[data-testid='media-preview-container']")) ||
+                ElementExists(By.CssSelector("div[data-testid='media-editor']")) ||
+                ElementExists(By.CssSelector("div[role='dialog'][data-animate-modal-body='true']")),
+                TimeSpan.FromSeconds(3), ct);
+        }
+
+        // 🔹 Click the “Send” button — works even if it’s inside Shadow DOM
+        private async Task<bool> ClickSendButtonAsync(CancellationToken ct)
+        {
+            // 🟢 Look for both <button> and <div role="button"> variants of Send
+            var sendBtn = _driver.FindElements(By.CssSelector(
+                "button[aria-label='Send'], " +
+                "div[aria-label='Send'][role='button'], " +
+                "button[data-testid='media-send'], " +
+                "span[data-icon='send'], " +
+                "span[data-icon='wds-ic-send-filled'], " +
+                "svg[title='wds-ic-send-filled']"))
+                .LastOrDefault(el => el.Displayed && el.Enabled);
+
+            if (sendBtn != null)
+            {
+                try
+                {
+                    ((IJavaScriptExecutor)_driver).ExecuteScript("arguments[0].scrollIntoView(true);", sendBtn);
+                    ((IJavaScriptExecutor)_driver).ExecuteScript("arguments[0].click();", sendBtn);
+                    Console.WriteLine("[SendButton] ✅ Clicked via JS");
+                    await Task.Delay(1000, ct);
+                    return true;
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine("[SendButton] ⚠️ Click failed: " + ex.Message);
+                    TrySaveScreenshot("send_click_fail");
+                }
             }
             else
             {
-                Console.WriteLine("[Attach] ❌ Send button not found — saving screenshot.");
-                TrySaveScreenshot(digitsOnly + "_noSendButton");
-                return false;
+                Console.WriteLine("[SendButton] ❌ Not found, trying deep shadow search...");
+
+                // 🧩 Fallback: JS probe into shadow DOM (modern WhatsApp uses nested shadows)
+                string jsShadowClick = @"
+        const search = root => {
+            const sel = ['button[aria-label=""Send""]', 'div[aria-label=""Send""][role=""button""]', 'span[data-icon=""wds-ic-send-filled""]'];
+            for (const s of sel) {
+                const el = root.querySelector(s);
+                if (el) { el.click(); return true; }
             }
-        }
-
-        // ===== CASE 2: Text-only =====
-        if (!string.IsNullOrWhiteSpace(message))
-        {
-            JsLog("Sending text-only message...");
-
-            var composer = TryFindComposer();
-            if (composer == null)
-            {
-                JsLog("Composer not found!");
-                return false;
+            for (const el of root.querySelectorAll('*')) {
+                if (el.shadowRoot && search(el.shadowRoot)) return true;
             }
-
-            int outgoingBefore = CountOutgoingMessages();
-            composer.Click();
-
-            JsLog("Typing message...");
-            var normalizedMessage = message.Replace("\r\n", "\n");
-            var populated = TryPopulateComposer(composer, normalizedMessage);
-
-            if (!populated || ComposerIsEmpty(composer))
-            {
-                JsLog("Fallback typing...");
-                composer.SendKeys(SeleniumKeys.Control + "a");
-                composer.SendKeys(SeleniumKeys.Delete);
-
-                foreach (var line in normalizedMessage.Split('\n'))
+            return false;
+        };
+        return search(document);
+    ";
+                object ok = ((IJavaScriptExecutor)_driver).ExecuteScript(jsShadowClick);
+                if (ok is bool && (bool)ok)
                 {
-                    if (!string.IsNullOrEmpty(line))
-                        composer.SendKeys(line);
-                    composer.SendKeys(SeleniumKeys.Shift + SeleniumKeys.Enter);
+                    Console.WriteLine("[SendButton] ✅ Clicked via shadow DOM fallback");
+                    await Task.Delay(1000, ct);
+                    return true;
                 }
             }
 
-            composer.SendKeys(SeleniumKeys.Enter);
-            JsLog("Enter pressed, waiting for confirmation...");
-
-            bool sentText = await WaitUntilAsync(
-                () => CountOutgoingMessages() > outgoingBefore || ComposerLooksCleared(),
-                TimeSpan.FromSeconds(10), ct);
-
-            JsLog("Text message sent = " + sentText);
-            return sentText;
+            Console.WriteLine("[SendButton] ❌ Send button not found after all attempts");
+            TrySaveScreenshot("no_send_button");
+            return false;
         }
 
-        JsLog("Nothing to send.");
-        return false;
-    }
-    catch (Exception ex)
-    {
-        JsLog("Exception: " + ex.Message);
-        TrySaveScreenshot(digitsOnly + "_error");
-        return false;
-    }
-}
 
 
         private IWebElement? FindUsableFileInput()
