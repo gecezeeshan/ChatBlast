@@ -13,9 +13,6 @@ namespace WhatsAppBulkSender
         {
             InitializeComponent();
 
-            this.chkHeadless.Visible = false;
-            this.chkHeadless.Checked = true;
-
              this.numDelayMs.Visible = false;
             this.label2.Visible = false;   
         }

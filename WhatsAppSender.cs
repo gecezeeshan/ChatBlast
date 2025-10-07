@@ -17,9 +17,6 @@ namespace WhatsAppBulkSender
             var opts = new ChromeOptions();
             opts.PageLoadStrategy = PageLoadStrategy.Eager;
             
-             // Always run headless
-            opts.AddArgument("--headless=new");
-
             // ✅ Stability options to prevent ChromeDriver crash
             opts.AddArgument("--remote-debugging-port=9222");
             opts.AddArgument("--no-sandbox");
